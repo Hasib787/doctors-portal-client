@@ -1,22 +1,45 @@
 import React from "react";
-import { useSignInWithGoogle } from "react-firebase-hooks/auth";
+import {
+  useSignInWithGoogle,
+  useSignInWithEmailAndPassword,
+} from "react-firebase-hooks/auth";
 import auth from "../../firebase.init";
 import { useForm } from "react-hook-form";
+import Loading from "../Shared/Loading";
 
 const Login = () => {
-  const [signInWithGoogle, user, loading, error] = useSignInWithGoogle(auth);
+  const [signInWithGoogle, googleUser, googleLoading, googleError] =
+    useSignInWithGoogle(auth);
   const {
     register,
     formState: { errors },
     handleSubmit,
   } = useForm();
 
-  const onSubmit = (data) => {
-    console.log(data)
-};
+  const [signInWithEmailAndPassword, user, loading, error] =
+    useSignInWithEmailAndPassword(auth);
 
-  if (user) {
-    console.log(user);
+  let singInError;
+
+  if (loading || googleLoading) {
+    return <Loading />;
+  }
+
+  if (error || googleError) {
+    singInError = (
+      <p className="text-red-500">
+        <small>{error?.message || googleError?.message}</small>
+      </p>
+    );
+  }
+
+  const onSubmit = (data) => {
+    console.log(data);
+    signInWithEmailAndPassword(data.email, data.password);
+  };
+
+  if (googleUser) {
+    console.log(googleUser);
   }
 
   return (
@@ -34,34 +57,69 @@ const Login = () => {
                 placeholder="Your Email"
                 className="input input-bordered w-full max-w-xs"
                 {...register("email", {
-                    required: {
-                        value: true,
-                        message: "Email is Required",
-                    }, 
+                  required: {
+                    value: true,
+                    message: "Email is Required",
+                  },
                   pattern: {
-                    value: /[A-Za-z]{3}/,
+                    value: /[a-z0-9]+@[a-z]+\.[a-z]{2,3}/,
                     message: "Provide a valid Email",
                   },
                 })}
                 aria-invalid={errors.email ? "true" : "false"}
               />
               <label className="label">
-                <span className="label-text-alt">Alt label</span>
+                {errors.email?.type === "required" && (
+                  <span className="label-text-alt text-red-500">
+                    {errors.email.message}
+                  </span>
+                )}
+                {errors.email?.type === "pattern" && (
+                  <span className="label-text-alt text-red-500">
+                    {errors.email.message}
+                  </span>
+                )}
               </label>
             </div>
-
-            <input />
-            {errors.firstName?.type === "required" && (
-              <p role="alert">First name is required</p>
-            )}
-
+            <div className="form-control w-full max-w-xs">
+              <label className="label">
+                <span className="label-text">Password</span>
+              </label>
+              <input
+                type="password"
+                placeholder="Password"
+                className="input input-bordered w-full max-w-xs"
+                {...register("password", {
+                  required: {
+                    value: true,
+                    message: "Password is Required",
+                  },
+                  pattern: {
+                    value: 6,
+                    message: "Must be 6 character or longer",
+                  },
+                })}
+                aria-invalid={errors.email ? "true" : "false"}
+              />
+              <label className="label">
+                {errors.password?.type === "required" && (
+                  <span className="label-text-alt text-red-500">
+                    {errors.password.message}
+                  </span>
+                )}
+                {errors.email?.type === "pattern" && (
+                  <span className="label-text-alt text-red-500">
+                    {errors.password.message}
+                  </span>
+                )}
+              </label>
+            </div>
+            {singInError}
             <input
-              {...register("mail", { required: "Email Address is required" })}
-              aria-invalid={errors.mail ? "true" : "false"}
+              className="btn w-full max-w-xs text-white"
+              type="submit"
+              value="Login"
             />
-            {errors.mail && <p role="alert">{errors.mail?.message}</p>}
-
-            <input type="submit" />
           </form>
           <div className="divider">OR</div>
           <button

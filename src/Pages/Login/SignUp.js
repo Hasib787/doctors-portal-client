@@ -1,15 +1,15 @@
 import React from "react";
 import {
   useSignInWithGoogle,
-  useSignInWithEmailAndPassword,
+  useCreateUserWithEmailAndPassword,
+  useUpdateProfile,
 } from "react-firebase-hooks/auth";
 import auth from "../../firebase.init";
 import { useForm } from "react-hook-form";
 import Loading from "../Shared/Loading";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-const Login = () => {
+const SignUp = () => {
   const [signInWithGoogle, googleUser, googleLoading, googleError] =
     useSignInWithGoogle(auth);
   const {
@@ -18,42 +18,78 @@ const Login = () => {
     handleSubmit,
   } = useForm();
 
-  const [signInWithEmailAndPassword, user, loading, error] =
-    useSignInWithEmailAndPassword(auth);
+  const [createUserWithEmailAndPassword, user, loading, error] =
+    useCreateUserWithEmailAndPassword(auth);
+
+  const [updateProfile, updating, updateError] = useUpdateProfile(auth);
+
+  const navigate = useNavigate();
 
   let singInError;
-  const navigate = useNavigate();
-  const location = useLocation();
-  let from = location.state?.from?.pathname || "/";
 
-  useEffect(() => {
-    if (user || googleUser) {
-      navigate(from, { replace: true });
-    }
-  }, [user, googleUser, navigate, from]);
-
-  if (loading || googleLoading) {
+  if (loading || updating || googleLoading) {
     return <Loading />;
   }
 
-  if (error || googleError) {
+  if (error || googleError || updateError) {
     singInError = (
       <p className="text-red-500">
-        <small>{error?.message || googleError?.message}</small>
+        <small>
+          {error?.message || googleError?.message || updateError?.message}
+        </small>
       </p>
     );
   }
 
-  const onSubmit = (data) => {
-    signInWithEmailAndPassword(data.email, data.password);
+  const onSubmit = async (data) => {
+    console.log(data);
+    await createUserWithEmailAndPassword(data.email, data.password);
+    await updateProfile({ displayName: data.name });
+    navigate("/appointment");
   };
 
+  if (user || googleUser) {
+    console.log(googleUser);
+  }
   return (
     <div className="flex h-screen justify-center items-center">
       <div className="card w-96 bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="text-center text-2xl font-bold">Login</h2>
+          <h2 className="text-center text-2xl font-bold">Sign Up</h2>
           <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="form-control w-full max-w-xs">
+              <label className="label">
+                <span className="label-text">Name</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Your Name"
+                className="input input-bordered w-full max-w-xs"
+                {...register("name", {
+                  required: {
+                    value: true,
+                    message: "Name is Required",
+                  },
+                  minLength: {
+                    value: 3,
+                    message: "Must be 3 character or longer",
+                  },
+                })}
+                aria-invalid={errors.name ? "true" : "false"}
+              />
+              <label className="label">
+                {errors.name?.type === "required" && (
+                  <span className="label-text-alt text-red-500">
+                    {errors.name.message}
+                  </span>
+                )}
+                {errors.name?.type === "minLength" && (
+                  <span className="label-text-alt text-red-500">
+                    {errors.name.message}
+                  </span>
+                )}
+              </label>
+            </div>
             <div className="form-control w-full max-w-xs">
               <label className="label">
                 <span className="label-text">Email</span>
@@ -105,7 +141,7 @@ const Login = () => {
                     message: "Must be 6 character or longer",
                   },
                 })}
-                aria-invalid={errors.email ? "true" : "false"}
+                aria-invalid={errors.password ? "true" : "false"}
               />
               <label className="label">
                 {errors.password?.type === "required" && (
@@ -124,14 +160,14 @@ const Login = () => {
             <input
               className="btn w-full max-w-xs text-white"
               type="submit"
-              value="Login"
+              value="Sing Up"
             />
           </form>
           <small className="text-center mt-3">
             <p>
-              New to Doctors Portal?{" "}
-              <Link to="/signup" className="text-primary">
-                Create new account
+              Doctors Portal user?{" "}
+              <Link to="/login" className="text-primary">
+                Please login
               </Link>
             </p>
           </small>
@@ -148,4 +184,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default SignUp;
